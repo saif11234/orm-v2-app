@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ORM sheet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/png" href="left.png" />
+</head>
+<body>
+  <header>
+    <img src="left.png" alt="Left logo" />
+    <h1>ORM sheet</h1>
+    <img src="right.png" alt="Right logo" />
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('assessment')">Risk Assessment</button>
+    <button class="tab" onclick="showTab('reference')">Reference Tables</button>
+  </div>
+
+  <!-- Assessment Tab Content -->
+  <div id="assessmentTab" class="tab-content active">
+    <iframe src="assessment.html" style="width: 100%; min-height: 600px; border: none;"></iframe>
+  </div>
+
+  <!-- Reference Tab Content -->
+  <div id="referenceTab" class="tab-content">
+    <iframe src="reference.html" style="width: 100%; min-height: 600px; border: none;"></iframe>
+  </div>
+
+  <footer class="footer">
+    31st Air Unit
+  </footer>
+
+  <script>
+    // Tab functionality
+    function showTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // Remove active class from all tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      // Show selected tab content and mark tab as active
+      if (tabName === 'assessment') {
+        document.getElementById('assessmentTab').classList.add('active');
+        document.querySelector('.tab[onclick="showTab(\'assessment\')"]').classList.add('active');
+      } else if (tabName === 'reference') {
+        document.getElementById('referenceTab').classList.add('active');
+        document.querySelector('.tab[onclick="showTab(\'reference\')"]').classList.add('active');
+      }
+    }
+  </script>
+</body>
+</html>

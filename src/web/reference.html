@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reference Tables</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Modal styles for adding and removing hazard cases (match app reference style) */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      animation: modalMilitaryFadeIn 0.25s ease;
+    }
+    .modal-content {
+      background: #1a1a1a;
+      margin: 10% auto;
+      padding: 24px;
+      border: 3px solid #4a6741;
+      width: 90%;
+      max-width: 520px;
+      border-radius: 0;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 60px rgba(74, 103, 65, 0.3);
+    }
+    .modal-content h3 { color: #b8d4a8; }
+    /* Make paragraphs inside example modal match reference table styling */
+    #viewExampleModal .modal-content p {
+      margin: 6px 0;
+      padding: 8px 12px;
+      background: rgba(74, 103, 65, 0.1);
+      border-left: 3px solid #4a6741;
+      font-family: 'Courier New', monospace;
+      color: #e0e0e0;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+    }
+    .modal-content input, .modal-content select {
+      width: 100%;
+      padding: 8px;
+      margin: 8px 0;
+      box-sizing: border-box;
+    }
+    .modal-content .buttons {
+      text-align: right;
+    }
+    .modal-content .buttons button {
+      margin-left: 10px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .modal-content .buttons .cancel {
+      background: #ccc;
+    }
+    .modal-content .buttons .save, .modal-content .buttons .remove {
+      background: #6c7cff;
+      color: white;
+    }
+    .modal-content .buttons .close-red { background: #ff4d4d; color: white; }
+    .action-btn {
+      background: #6c7cff;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .action-btn:hover { background: #5a6bff; }
+    .action-btn.remove { background: #ff4d4d; }
+    .action-btn.remove:hover { background: #e04343; }
+    .example-btn {
+      display:inline-block;
+      margin:4px;
+      padding:6px 10px;
+      background:#eef2ff;
+      border-radius:4px;
+      border:1px solid #c7d1ff;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h3>Likelihood Scale Definitions</h3>
+    <table class="reference-table">
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Category</th>
+          <th>Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><strong>Very Improbable</strong></td>
+          <td>The event almost inconceivable that the event will occur. It has never occurred in the history of the aviation industry.</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><strong>Improbable</strong></td>
+          <td>The event is very unlikely to occur. Not known to have occurred in the company but has already occurred at least once in the history of the aviation industry.</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td><strong>Remote</strong></td>
+          <td>The event is unlikely to occur, but possible. Has already occurred in the company at least once or has seldom occurred in the history of the aviation industry.</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td><strong>Probable</strong></td>
+          <td>The event is likely to occur sometimes. Has already occurred in the company. Has occurred infrequently in the history of the aviation industry.</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td><strong>Frequent</strong></td>
+          <td>The event is Likely to occur many times. Has already occurred in the company. Has occurred frequently in the history of the aviation industry.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Severity Scale Definitions</h3>
+    <table class="reference-table">
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Category</th>
+          <th>Definition</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1</strong></td>
+          <td><strong>Negligible</strong></td>
+          <td>Minimal impact on mission, personnel, or equipment.</td>
+        </tr>
+        <tr>
+          <td><strong>2</strong></td>
+          <td><strong>Minor</strong></td>
+          <td>Small impact that can be easily managed without significant consequences.</td>
+        </tr>
+        <tr>
+          <td><strong>3</strong></td>
+          <td><strong>Major</strong></td>
+          <td>Significant impact requiring immediate attention and resources.</td>
+        </tr>
+        <tr>
+          <td><strong>4</strong></td>
+          <td><strong>Critical</strong></td>
+          <td>Severe impact that could result in mission failure or serious injury.</td>
+        </tr>
+        <tr>
+          <td><strong>5</strong></td>
+          <td><strong>Catastrophic</strong></td>
+          <td>Extreme impact resulting in loss of life, major equipment loss, or mission abort.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h3>Risk Calculation & Score Matrix</h3>
+    <div class="risk-matrix">
+      <h4>Formula: Risk Value = Likelihood × Severity - Deduction</h4>
+      <p><strong>Example:</strong> If Likelihood = 3 (Remote) and Severity = 4 (Critical), then Risk Value = 3 × 4 = 12 - 5 (Deduction), then Residual Risk Value = 7 .</p>
+      
+      <h4>Risk Matrix (Likelihood × Severity)</h4>
+      <table class="matrix-table">
+        <thead>
+          <tr>
+            <th rowspan="2">Likelihood</th>
+            <th colspan="5">Severity</th>
+          </tr>
+          <tr>
+            <th>Negligible <br> (1)</th>
+            <th>Minor <br> (2)</th>
+            <th>Major <br> (3)</th>
+            <th>Critical <br> (4)</th>
+            <th>Catastrophic <br> (5)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>Frequent (5)</th>
+            <td class="risk-moderate">5</td>
+            <td class="risk-high">10</td>
+            <td class="risk-very-high">15</td>
+            <td class="risk-very-high">20</td>
+            <td class="risk-extreme">25</td>
+          </tr>
+          <tr>
+            <th>Probable (4)</th>
+            <td class="risk-low">4</td>
+            <td class="risk-moderate">8</td>
+            <td class="risk-high">12</td>
+            <td class="risk-very-high">16</td>
+            <td class="risk-very-high">20</td>
+          </tr>
+          <tr>
+            <th>Remote (3)</th>
+            <td class="risk-low">3</td>
+            <td class="risk-moderate">6</td>
+            <td class="risk-moderate">9</td>
+            <td class="risk-high">12</td>
+            <td class="risk-very-high">15</td>
+          </tr>
+          <tr>
+            <th>Improbable (2)</th>
+            <td class="risk-low">2</td>
+            <td class="risk-low">4</td>
+            <td class="risk-moderate">6</td>
+            <td class="risk-moderate">8</td>
+            <td class="risk-high">10</td>
+          </tr>
+          <tr>
+            <th>Very Improbable (1)</th>
+            <td class="risk-low">1</td>
+            <td class="risk-low">2</td>
+            <td class="risk-low">3</td>
+            <td class="risk-low">4</td>
+            <td class="risk-moderate">5</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Risk Categories by Score</h4>
+      <table class="reference-table">
+        <thead>
+          <tr>
+            <th>Score Range</th>
+            <th>Risk Category</th>
+            <th>Action Required</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1-4</strong></td>
+            <td><span class="risk-low" style="padding: 4px 8px; border-radius: 4px;">Low Risk</span></td>
+            <td>Accept risk, monitor as needed</td>
+          </tr>
+          <tr>
+            <td><strong>5-9</strong></td>
+            <td><span class="risk-moderate" style="padding: 4px 8px; border-radius: 4px;">Moderate Risk</span></td>
+            <td>Accept with controls, review periodically</td>
+          </tr>
+          <tr>
+            <td><strong>10-14</strong></td>
+            <td><span class="risk-high" style="padding: 4px 8px; border-radius: 4px;">High Risk</span></td>
+            <td>Require mitigation, supervisor approval.</td>
+          </tr>
+          <tr>
+            <td><strong>15-20</strong></td>
+            <td><span class="risk-very-high" style="padding: 4px 8px; border-radius: 4px;">Very High Risk</span></td>
+            <td>Require immediate action, command approval</td>
+          </tr>
+          <tr>
+            <td><strong>21-25</strong></td>
+            <td><span class="risk-extreme" style="padding: 4px 8px; border-radius: 4px;">Extreme Risk</span></td>
+            <td>Mission abort/postpone, redesign required</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Examples</h3>
+    <table class="reference-table" id="examplesTable">
+      <thead></thead>
+      <tbody id="examplesBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Modal for adding new hazard cases -->
+  <div id="addHazardModal" class="modal">
+    <div class="modal-content">
+      <h3>Add New Hazard </h3>
+      <input type="text" id="newHazardInput" placeholder="Enter new hazard case" />
+      <div id="newHazardChoices" style="margin-top:6px;"></div>
+      <div style="margin-top:8px;">
+        <button type="button" class="action-btn" onclick="addNewHazardChoice()">+ Add Choice</button>
+      </div>
+      <input type="hidden" id="currentCategory" />
+      <div class="buttons" style="margin-top:12px;">
+        <button class="cancel" onclick="closeModal('addHazardModal')">Cancel</button>
+        <button class="save" onclick="saveNewHazard()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for removing hazard cases -->
+  <div id="removeHazardModal" class="modal">
+    <div class="modal-content">
+      <h3>Remove Hazard </h3>
+      <select id="removeHazardSelect"></select>
+      <input type="hidden" id="removeCategory" />
+      <div class="buttons" style="margin-top:12px;">
+        <button class="cancel" onclick="closeModal('removeHazardModal')">Cancel</button>
+        <button class="remove" onclick="removeHazard()">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal to view example details -->
+  <div id="viewExampleModal" class="modal">
+    <div class="modal-content">
+      <h3 id="viewExampleTitle">Example</h3>
+      <div id="viewExampleChoices"></div>
+      <div style="margin-top:8px;">
+        <button type="button" class="action-btn" onclick="addChoiceRowInView()">+ Add Choice</button>
+      </div>
+      <div class="buttons" style="margin-top:12px;">
+        <button class="close-red" onclick="closeModal('viewExampleModal')">Close</button>
+        <button class="save" onclick="saveExampleChoices()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Examples now store objects with optional `choices` array: { name: string, choices: [] }
+    const EXAMPLES = {
+      "PLANNING": [
+        { name: "Aircraft Handling", choices: [] }
+      ],
+      "EVENT/MISSION": [
+        { name: "Wind / air / temperature", choices: [] }
+      ],
+      "ASSET/RESOURCES": [
+        { name: "Crew miscommunication", choices: [] }
+      ],
+      "COMMS/SUPERVISION": [
+        { name: "Non-essential conversation at inappropriate times", choices: [] }
+      ],
+      "ENVIRONMENT/GROUND FACILITIES": [
+      ]
+    };
+
+    // Load custom examples from localStorage if available (merge/replace categories)
+    const savedExamples = localStorage.getItem('customHazardExamples');
+    if (savedExamples) {
+      try {
+        const parsed = JSON.parse(savedExamples);
+        if (parsed && typeof parsed === 'object') {
+          Object.keys(parsed).forEach(cat => {
+            // Accept arrays of objects or legacy string arrays
+            if (Array.isArray(parsed[cat])) {
+              EXAMPLES[cat] = parsed[cat].map(item => {
+                if (typeof item === 'string') return { name: item, choices: [] };
+                return { name: item.name || String(item), choices: Array.isArray(item.choices) ? item.choices : [] };
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to parse saved examples', e);
+      }
+    }
+
+    // Function to persist EXAMPLES to localStorage
+    function persistExamples() {
+      try {
+        localStorage.setItem('customHazardExamples', JSON.stringify(EXAMPLES));
+      } catch (e) {
+        console.warn('Failed to save examples', e);
+      }
+    }
+
+    // Function to populate the examples table (render clickable items)
+    function populateExamplesTable() {
+      const tbody = document.getElementById('examplesBody');
+      tbody.innerHTML = '';
+      Object.keys(EXAMPLES).forEach(category => {
+        const tr = document.createElement('tr');
+        const tdCat = document.createElement('td');
+        tdCat.style.verticalAlign = 'top';
+        tdCat.style.padding = '10px';
+        tdCat.innerHTML = `<strong>${category}</strong><div style="margin-top:6px;">` +
+          `<button class="action-btn" onclick="openModal('addHazardModal','${escapeHtmlAttr(category)}')">+ Add Hazard</button>` +
+          `<button class="action-btn remove" onclick="openModal('removeHazardModal','${escapeHtmlAttr(category)}')">Remove</button>` +
+          `</div>`;
+        const tdExamples = document.createElement('td');
+        tdExamples.style.padding = '10px';
+        tdExamples.style.minWidth = '300px';
+        const examples = EXAMPLES[category] || [];
+        if (examples.length === 0) {
+          tdExamples.innerHTML = '<em>No examples</em>';
+        } else {
+          examples.forEach((ex, idx) => {
+            const p = document.createElement('p');
+            p.textContent = ex.name || String(ex);
+            p.title = ex.name || String(ex);
+            p.style.cursor = 'pointer';
+            p.addEventListener('click', () => showExample(category, idx));
+            tdExamples.appendChild(p);
+          });
+        }
+        tr.appendChild(tdCat);
+        tr.appendChild(tdExamples);
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Modal functions
+    function openModal(modalId, category) {
+      const modal = document.getElementById(modalId);
+      const categoryInput = modalId === 'addHazardModal' ? document.getElementById('currentCategory') : document.getElementById('removeCategory');
+      categoryInput.value = category;
+      if (modalId === 'addHazardModal') {
+        document.getElementById('newHazardInput').value = '';
+        document.getElementById('newHazardChoices').innerHTML = '';
+        document.getElementById('newHazardInput').focus();
+      } else if (modalId === 'removeHazardModal') {
+        const sel = document.getElementById('removeHazardSelect');
+        sel.innerHTML = '';
+        const list = EXAMPLES[category] || [];
+        list.forEach((ex, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.text = ex.name || String(ex);
+          sel.appendChild(opt);
+        });
+      }
+      modal.style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.style.display = 'none';
+    }
+
+    function saveNewHazard() {
+      const category = document.getElementById('currentCategory').value;
+      const newHazard = document.getElementById('newHazardInput').value.trim();
+      const choicesWrap = document.getElementById('newHazardChoices');
+      const choiceInputs = Array.from(choicesWrap.querySelectorAll('input')).map(i => i.value.trim()).filter(Boolean);
+      if (newHazard && category) {
+        const entry = { name: newHazard, choices: choiceInputs };
+        EXAMPLES[category] = EXAMPLES[category] || [];
+        EXAMPLES[category].push(entry);
+        persistExamples();
+        populateExamplesTable();
+      }
+      closeModal('addHazardModal');
+    }
+
+    function removeHazard() {
+      const category = document.getElementById('removeCategory').value;
+      const idxStr = document.getElementById('removeHazardSelect').value;
+      if (category && idxStr !== '') {
+        const idx = parseInt(idxStr, 10);
+        if (!isNaN(idx) && EXAMPLES[category] && EXAMPLES[category][idx]) {
+          EXAMPLES[category].splice(idx, 1);
+          persistExamples();
+          populateExamplesTable();
+        }
+      }
+      closeModal('removeHazardModal');
+    }
+
+    // Show example details (name + optional choices)
+    function showExample(category, idx) {
+      const modal = document.getElementById('viewExampleModal');
+      const title = document.getElementById('viewExampleTitle');
+      const choicesDiv = document.getElementById('viewExampleChoices');
+      const ex = EXAMPLES[category] && EXAMPLES[category][idx];
+      if (!ex) return;
+      // store current editing context on modal element
+      modal.dataset.category = category;
+      modal.dataset.idx = String(idx);
+      title.textContent = ex.name || String(ex);
+      choicesDiv.innerHTML = '';
+      const header = document.createElement('h4');
+      header.textContent = 'Choices';
+      choicesDiv.appendChild(header);
+      const list = document.createElement('div');
+      list.id = 'viewChoicesList';
+      (ex.choices || []).forEach(c => addChoiceRowInView(c));
+      if (!ex.choices || !ex.choices.length) {
+        const none = document.createElement('div');
+        none.id = 'viewNoChoices';
+        none.innerHTML = '<em>No choices</em>';
+        choicesDiv.appendChild(none);
+      }
+      choicesDiv.appendChild(list);
+      modal.style.display = 'block';
+    }
+
+    // Add an editable choice row inside the view modal
+    function addChoiceRowInView(initialText = '') {
+      const modal = document.getElementById('viewExampleModal');
+      const choicesDiv = document.getElementById('viewExampleChoices');
+      const list = document.getElementById('viewChoicesList') || (() => {
+        const l = document.createElement('div');
+        l.id = 'viewChoicesList';
+        choicesDiv.appendChild(l);
+        return l;
+      })();
+      // remove placeholder "No choices" if present
+      const placeholder = document.getElementById('viewNoChoices');
+      if (placeholder) placeholder.remove();
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '8px';
+      row.style.marginTop = '6px';
+      const input = document.createElement('input');
+      input.value = initialText || '';
+      input.placeholder = 'Choice';
+      input.style.flex = '1';
+      input.style.padding = '8px';
+      input.style.border = '1px solid #444';
+      input.style.background = '#121212';
+      input.style.color = '#fff';
+      const rem = document.createElement('button');
+      rem.type = 'button';
+      rem.className = 'action-btn remove';
+      rem.textContent = 'Remove';
+      rem.onclick = () => row.remove();
+      row.appendChild(input);
+      row.appendChild(rem);
+      list.appendChild(row);
+      input.focus();
+    }
+
+    // Save edited choices for the current example
+    function saveExampleChoices() {
+      const modal = document.getElementById('viewExampleModal');
+      const category = modal.dataset.category;
+      const idx = parseInt(modal.dataset.idx, 10);
+      if (!category || isNaN(idx)) return closeModal('viewExampleModal');
+      const list = document.getElementById('viewChoicesList');
+      const inputs = list ? Array.from(list.querySelectorAll('input')) : [];
+      const newChoices = inputs.map(i => i.value.trim()).filter(Boolean);
+      EXAMPLES[category] = EXAMPLES[category] || [];
+      if (!EXAMPLES[category][idx]) return closeModal('viewExampleModal');
+      EXAMPLES[category][idx].choices = newChoices;
+      persistExamples();
+      populateExamplesTable();
+      closeModal('viewExampleModal');
+    }
+
+    // Close modals when clicking outside
+    ['addHazardModal', 'removeHazardModal', 'viewExampleModal'].forEach(modalId => {
+      document.getElementById(modalId).addEventListener('click', (e) => {
+        if (e.target && e.target.id === modalId) closeModal(modalId);
+      });
+    });
+
+    // Helper to add a choice input inside the Add Hazard modal
+    function addNewHazardChoice() {
+      const wrap = document.getElementById('newHazardChoices');
+      const idx = wrap.children.length;
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '8px';
+      row.style.marginTop = '6px';
+      const input = document.createElement('input');
+      input.placeholder = `Choice ${idx + 1}`;
+      input.style.flex = '1';
+      input.style.padding = '8px';
+      input.style.border = '1px solid #ccc';
+      const rem = document.createElement('button');
+      rem.type = 'button';
+      rem.className = 'action-btn remove';
+      rem.textContent = 'Remove';
+      rem.onclick = () => row.remove();
+      row.appendChild(input);
+      row.appendChild(rem);
+      wrap.appendChild(row);
+      input.focus();
+    }
+
+    // Escape helper for attribute interpolation
+    function escapeHtmlAttr(s) {
+      return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Initialize the table on page load
+    populateExamplesTable();
+  </script>
+</body>
+</html>

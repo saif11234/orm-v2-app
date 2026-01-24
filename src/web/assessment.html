@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Risk Assessment</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <!-- Validation Error Message -->
+  <div class="validation-error" id="validationError">
+    <strong>⚠️ Form Incomplete!</strong><br>
+    Please fill in the following required fields:
+    <ul id="missingFields"></ul>
+  </div>
+
+  <!-- Mission & Crew Details Section -->
+  <div class="section" id="missionDetails">
+    <h3>Mission & Crew Information</h3>
+    <div class="inputs">
+      <div class="input-row">
+        <div class="line">
+          <div style="flex: 1 1 180px;">
+            <input type="text" id="pilotName" placeholder="Pilot Name" />
+            <div class="date-info">*Required field</div>
+          </div>
+          <div style="flex: 1 1 180px;">
+            <input type="text" id="pilotCode" placeholder="Pilot Code" />
+            <div class="date-info">*Required field</div>
+          </div>
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="line">
+          <input type="text" id="secondPilotName" placeholder="Second Pilot Name" />
+          <input type="text" id="secondPilotCode" placeholder="Second Pilot Code" />
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="line">
+          <input type="text" id="mechanicName" placeholder="Mechanic Name" />
+        </div>
+      </div>
+      <div class="input-row">
+        <div class="line">
+          <div style="flex: 1 1 180px;">
+            <input type="date" id="missionTime" />
+            <div class="date-info">📅 *Required field </div>
+            <div class="date-error" id="dateError">Please select a date</div>
+          </div>
+          <div style="flex: 1 1 180px;">
+            <input type="text" id="missionType" placeholder="Mission Type" />
+            <div class="date-info">*Required field</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="categories"></div>
+
+  <div class="results" id="results">
+    <span id="ormRisk" class="badge" style="background:white; border:1px solid #ccd6ff;">ORM Risk: -</span>
+    <span id="riskCategory" class="badge" style="background:white; border:1px solid #ccd6ff;">Risk Category: -</span>
+    <div class="controls">
+      <button class="save" id="saveExcel">💾 Save to Excel</button>
+      <button class="save" id="saveCSV">📝 Save as CSV</button>
+      <button class="save-pdf" id="savePDF">📄 Save to PDF</button>
+    </div>
+  </div>
+
+  <script>
+    const LIKELIHOOD_OPTIONS = [
+      {v:1,label:'Very improbable'}, {v:2,label:'Improbable'}, {v:3,label:'Remote'},
+      {v:4,label:'Probable'}, {v:5,label:'Frequent'}
+    ];
+    const SEVERITY_OPTIONS = [
+      {v:1,label:'Negligible'}, {v:2,label:'Minor'}, {v:3,label:'Major'},
+      {v:4,label:'Critical'}, {v:5,label:'Catastrophic'}
+    ];
+    const CATEGORIES = ["Planning","Event/Mission","Asset/Resource","Comms/Supervision","Environment/Ground Facilities"];
+    const container = document.getElementById('categories');
+
+    // Built-in examples (can be extended by saved items from reference tab via localStorage)
+    const EXAMPLES = {
+      "Planning": [
+        "Time is enough",
+        "Lack of detailed information / instructions / adequate briefing / aids pictures",
+        "No adequate aviation threat assessment",
+        "Unfamiliar with briefing material / RFM / checklists",
+        "Discrepancies between briefing material / RFM / checklists",
+        "Landing area unsuitable for an EOL",
+        "Aircraft Handling"
+      ],
+      "Event/Mission": [
+        "SOP / policy related",
+        "Mission specification",
+        "New airport/landing strip",
+        "Last minute changes",
+        "Speed/rotor RPM deviations",
+        "Intellectual abilities alteration",
+        "Other aircraft in the intended flight path",
+        "Failure to execute engine power recovery when necessary",
+        "Wind / air / temperature"
+      ],
+      "Asset/Resource": [
+        "Equipment stability",
+        "Main and substitute aircraft available",
+        "Crew/team lack of time",
+        "Unfamiliar with the area",
+        "Fatigue",
+        "Experience",
+        "Rest",
+        "Qualifications",
+        "Asset suitability",
+        "Status of the equipment on board - ground",
+        "Aircraft Handling",
+        "Intellectual abilities alteration",
+        "Crew miscommunication"
+      ],
+      "Comms/Supervision": [
+        "No point of contact at destination",
+        "Comms available range",
+        "Comms available range due to obstacles",
+        "No adequate equipment",
+        "No ground staff",
+        "Non-essential conversation at inappropriate times"
+      ],
+      "Environment/Ground Facilities": [
+        "Handling services available",
+        "Weather",
+        "Night illumination",
+        "Cockpit temperature",
+        "Obstruction",
+        "Security threat",
+        "Facilities / support at destination",
+        "Terrain assessment"
+      ]
+    };
+
+    // Map assessment categories to reference storage keys
+    function mapCategoryToStorageKey(cat) {
+      const map = {
+        "Planning": "PLANNING",
+        "Event/Mission": "EVENT/MISSION",
+        "Asset/Resource": "ASSET/RESOURCES",
+        "Comms/Supervision": "COMMS/SUPERVISION",
+        "Environment/Ground Facilities": "ENVIRONMENT/GROUND FACILITIES"
+      };
+      return map[cat] || cat.toUpperCase();
+    }
+
+    function getSavedExamplesFor(cat) {
+      try {
+        const raw = localStorage.getItem('customHazardExamples');
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        const key = mapCategoryToStorageKey(cat);
+        const arr = parsed && parsed[key];
+        if (Array.isArray(arr)) {
+          // arr may contain strings (old format) or objects {name, choices}
+          return arr.map(item => (typeof item === 'string') ? item : (item && item.name) ? item.name : '').filter(Boolean);
+        }
+      } catch (_) { /* ignore */ }
+      return [];
+    }
+
+    function getSavedExampleObject(cat, name) {
+      try {
+        const raw = localStorage.getItem('customHazardExamples');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const key = mapCategoryToStorageKey(cat);
+        const arr = parsed && parsed[key];
+        if (!Array.isArray(arr)) return null;
+        for (const item of arr) {
+          if (typeof item === 'string') {
+            if (item === name) return { name: item, choices: [] };
+          } else if (item && item.name === name) {
+            return { name: item.name, choices: Array.isArray(item.choices) ? item.choices : [] };
+          }
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    function buildExampleOptions(cat) {
+      const builtIn = EXAMPLES[cat] || [];
+      const saved = getSavedExamplesFor(cat);
+      // Prefer saved examples (from Reference/localStorage) when available — keep built-ins as fallback
+      const source = (Array.isArray(saved) && saved.length) ? saved : builtIn;
+      const optionsHtml = ['<option value="">Select an example...</option>']
+        .concat(source.map(ex => `<option value="${String(ex).replace(/"/g,'&quot;')}">${String(ex).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</option>`));
+      return optionsHtml.join('');
+    }
+
+    // Auto-capitalization function
+    function capitalizeFirstLetter(str) {
+      if (!str) return str;
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Function to convert text to all uppercase
+    function handleUppercaseCapitalization(input) {
+      input.addEventListener('input', function(e) {
+        const cursorPosition = e.target.selectionStart;
+        const uppercaseValue = e.target.value.toUpperCase();
+        if (e.target.value !== uppercaseValue) {
+          e.target.value = uppercaseValue;
+          e.target.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      });
+    }
+
+    // Function to capitalize input on the fly (first letter only)
+    function handleTextCapitalization(input) {
+      input.addEventListener('input', function(e) {
+        const cursorPosition = e.target.selectionStart;
+        const capitalizedValue = capitalizeFirstLetter(e.target.value);
+        if (e.target.value !== capitalizedValue) {
+          e.target.value = capitalizedValue;
+          e.target.setSelectionRange(cursorPosition, cursorPosition);
+        }
+      });
+    }
+
+    // Form validation function
+    function validateForm() {
+      const pilotName = document.getElementById('pilotName').value.trim();
+      const pilotCode = document.getElementById('pilotCode').value.trim();
+      const missionType = document.getElementById('missionType').value.trim();
+      const missionTime = document.getElementById('missionTime').value.trim();
+      
+      const missingFields = [];
+      const validationError = document.getElementById('validationError');
+      const missingFieldsList = document.getElementById('missingFields');
+      
+      // Clear previous styling
+      document.querySelectorAll('.required-field').forEach(field => {
+        field.classList.remove('required-field');
+      });
+      
+      // Check required fields
+      if (!pilotName) {
+        missingFields.push('Pilot Name');
+        document.getElementById('pilotName').classList.add('required-field');
+      }
+      if (!pilotCode) {
+        missingFields.push('Pilot Code');
+        document.getElementById('pilotCode').classList.add('required-field');
+      }
+      if (!missionType) {
+        missingFields.push('Mission Type');
+        document.getElementById('missionType').classList.add('required-field');
+      }
+      if (!missionTime) {
+        missingFields.push('Mission Date');
+        document.getElementById('missionTime').classList.add('required-field');
+      }
+      
+      // Show/hide validation error
+      if (missingFields.length > 0) {
+        missingFieldsList.innerHTML = missingFields.map(field => `<li>${field}</li>`).join('');
+        validationError.style.display = 'block';
+        
+        // Scroll to validation error
+        validationError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        return false;
+      } else {
+        validationError.style.display = 'none';
+        return true;
+      }
+    }
+
+    // Date validation for mission time
+    const missionTimeInput = document.getElementById('missionTime');
+    const dateError = document.getElementById('dateError');
+
+    function validateMissionDate() {
+      const selectedDate = new Date(missionTimeInput.value);
+      const minDate = new Date('2025-01-01');
+      const maxDate = new Date('2050-12-31');
+      
+      if (!missionTimeInput.value) {
+        missionTimeInput.classList.remove('valid', 'invalid');
+        dateError.style.display = 'none';
+        return true; // Allow empty for now
+      }
+      
+      if (selectedDate < minDate || selectedDate > maxDate) {
+        missionTimeInput.classList.add('invalid');
+        missionTimeInput.classList.remove('valid');
+        dateError.style.display = 'block';
+        return false;
+      } else {
+        missionTimeInput.classList.add('valid');
+        missionTimeInput.classList.remove('invalid');
+        dateError.style.display = 'none';
+        return true;
+      }
+    }
+
+    missionTimeInput.addEventListener('input', validateMissionDate);
+    missionTimeInput.addEventListener('change', validateMissionDate);
+
+    // Add capitalization to mission details inputs
+    ['pilotName', 'secondPilotName', 'mechanicName', 'missionType'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        handleTextCapitalization(input); // Utilisation de capitalisation pour les noms
+      }
+    });
+
+    ['pilotCode', 'secondPilotCode'].forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        handleUppercaseCapitalization(input); // Uppercase pour les codes
+      }
+    });
+
+    CATEGORIES.forEach(cat => {
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.innerHTML = `<h3>${cat}</h3><div class="inputs"></div><div class="controls"><button class="add">+ Add Risk</button><button class="add exampleBtn">Use Example</button><select class="exampleSelect" style="display:none;"></select></div>`;
+      container.appendChild(section);
+      const inputsDiv = section.querySelector('.inputs');
+      const addBtn = section.querySelector('.add');
+      const exampleBtn = section.querySelector('.exampleBtn');
+      const exampleSelect = section.querySelector('.exampleSelect');
+
+      // Populate examples for this category (merge built-ins + saved from reference tab)
+      exampleSelect.innerHTML = buildExampleOptions(cat);
+
+      const createRow = (prefill) => {
+        const row = document.createElement('div');
+        row.className = 'input-row';
+        row.innerHTML = `
+          <div class="line"><input type="text" class="title" placeholder="Risk Title"/></div>
+          <div class="line">
+            <select class="likelihood"></select>
+            <select class="severity"></select>
+          </div>
+          <div class="line">
+            <input type="text" class="desc" placeholder="Description"/>
+            <input type="number" class="deduction" placeholder="Deduction" min="0" step="1"/>
+          </div>
+          <div class="line">
+            <div class="calc-pill riskVal productPill">Risk Value: <span class="product">-</span></div>
+            <div class="calc-pill riskVal finalPill">Residual Risk Value: <span class="finalValue">-</span></div>
+            <button class="delete">❌ Delete</button>
+          </div>
+        `;
+        inputsDiv.appendChild(row);
+
+        const titleInput = row.querySelector('.title');
+        const descInput = row.querySelector('.desc');
+        handleTextCapitalization(titleInput);
+        handleTextCapitalization(descInput);
+
+        // Description field helper: if choices array provided, replace text input with select
+        function setDescriptionField(choices, initialValue) {
+          const descContainer = row.querySelector('.line').previousElementSibling || null; // not used
+          const descEl = row.querySelector('.desc');
+          if (Array.isArray(choices) && choices.length) {
+            const sel = document.createElement('select');
+            sel.className = 'desc';
+            const emptyOpt = document.createElement('option');
+            emptyOpt.value = '';
+            emptyOpt.textContent = 'Select a choice...';
+            sel.appendChild(emptyOpt);
+            choices.forEach(c => {
+              const o = document.createElement('option');
+              o.value = c;
+              o.textContent = c;
+              sel.appendChild(o);
+            });
+            // leave default selection as the empty placeholder
+            descEl.replaceWith(sel);
+            sel.addEventListener('change', handleChange);
+          } else {
+            // ensure it's a text input
+            if (descEl && descEl.tagName && descEl.tagName.toLowerCase() === 'select') {
+              const input = document.createElement('input');
+              input.type = 'text';
+              input.className = 'desc';
+              input.placeholder = 'Description';
+              input.value = '';
+              input.addEventListener('input', handleChange);
+              // apply capitalization handler to the newly created input
+              handleTextCapitalization(input);
+              descEl.replaceWith(input);
+            } else if (descEl) {
+              descEl.value = '';
+            }
+          }
+        }
+
+        const likeSel = row.querySelector('.likelihood');
+        const sevSel = row.querySelector('.severity');
+        LIKELIHOOD_OPTIONS.forEach(o => {
+          const opt = document.createElement('option');
+          opt.value = o.v;
+          opt.textContent = `${o.v} - ${o.label}`;
+          likeSel.appendChild(opt);
+        });
+        SEVERITY_OPTIONS.forEach(o => {
+          const opt = document.createElement('option');
+          opt.value = o.v;
+          opt.textContent = `${o.v} - ${o.label}`;
+          sevSel.appendChild(opt);
+        });
+        likeSel.value = "1";
+        sevSel.value = "1";
+
+        row.addEventListener('input', handleChange);
+        row.addEventListener('change', handleChange);
+
+        row.querySelector('.delete').addEventListener('click', () => {
+          row.remove();
+          updateORM();
+        });
+
+        if (prefill && prefill.exampleText) {
+          titleInput.value = prefill.exampleText;
+          // If example provided with choices, convert description into dropdown
+          if (Array.isArray(prefill.exampleChoices) && prefill.exampleChoices.length) {
+            // default to placeholder (empty) — user must choose
+            setDescriptionField(prefill.exampleChoices);
+          } else {
+            // keep text input but leave it empty
+            const currentDesc = row.querySelector('.desc');
+            if (currentDesc) currentDesc.value = '';
+          }
+        }
+
+        computeRow(row);
+        updateORM();
+      };
+      addBtn.addEventListener('click', () => {
+        createRow();
+      });
+
+      exampleBtn.addEventListener('click', () => {
+        // Refresh from localStorage each time button is clicked
+        exampleSelect.innerHTML = buildExampleOptions(cat);
+        exampleSelect.style.display = exampleSelect.style.display === 'none' ? 'inline-block' : 'none';
+      });
+
+      // Listen for storage changes (Reference tab may update customHazardExamples)
+      // and refresh this category's example options when it happens.
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'customHazardExamples') {
+          try {
+            exampleSelect.innerHTML = buildExampleOptions(cat);
+          } catch (_) { /* ignore */ }
+        }
+      });
+
+      exampleSelect.addEventListener('change', () => {
+        const chosen = exampleSelect.value;
+        if (!chosen) return;
+        // Try to find saved example object (may contain choices)
+        const savedObj = getSavedExampleObject(cat, chosen);
+        if (savedObj) {
+          createRow({ exampleText: savedObj.name, exampleChoices: savedObj.choices });
+        } else {
+          createRow({ exampleText: chosen });
+        }
+        exampleSelect.value = '';
+        exampleSelect.style.display = 'none';
+      });
+    });
+
+    function computeRow(row) {
+      const like = parseInt(row.querySelector('.likelihood')?.value || '0', 10);
+      const sev = parseInt(row.querySelector('.severity')?.value || '0', 10);
+      const ded = parseFloat(row.querySelector('.deduction')?.value || '0');
+      const product = like * sev;
+      const finalValue = product - ded;
+      row.querySelector('.product').textContent = product;
+      row.querySelector('.finalValue').textContent = finalValue;
+      row.dataset.product = product;
+      row.dataset.final = finalValue;
+      row.dataset.like = like;
+      row.dataset.sev = sev;
+
+      const productCat = riskCategoryFrom(product);
+      const finalCat = riskCategoryFrom(finalValue);
+      const productColor = colorFromCategory(productCat);
+      const finalColor = colorFromCategory(finalCat);
+
+      const productPill = row.querySelector('.productPill');
+      productPill.style.background = productColor;
+      productPill.style.color = (productCat === "Extreme risk" || productCat === "Very high risk") ? "white" : "black";
+
+      const finalPill = row.querySelector('.finalPill');
+      finalPill.style.background = finalColor;
+      finalPill.style.color = (finalCat === "Extreme risk" || finalCat === "Very high risk") ? "white" : "black";
+    }
+
+    function handleChange(e) {
+      const row = e.currentTarget.closest('.input-row');
+      computeRow(row);
+      updateORM();
+    }
+
+    function riskCategoryFrom(score) {
+      if (score >= 21 && score <= 25) return "Extreme risk";
+      if (score >= 15 && score <= 20) return "Very high risk";
+      if (score >= 10 && score <= 14) return "High risk";
+      if (score >= 5 && score <= 9) return "Moderate risk";
+      if (score >= 1 && score <= 4) return "Low risk";
+      return "-";
+    }
+
+    function colorFromCategory(category) {
+      switch (category) {
+        case "Low risk": return "green";
+        case "Moderate risk": return "yellow";
+        case "High risk": return "orange";
+        case "Very high risk": return "red";
+        case "Extreme risk": return "black";
+        default: return "white";
+      }
+    }
+
+    function updateORM() {
+      let maxScore = null;
+      document.querySelectorAll('.input-row').forEach(row => {
+        const val = parseFloat(row.dataset.final);
+        if (!isNaN(val)) {
+          if (maxScore === null || val > maxScore) maxScore = val;
+        }
+      });
+      const ormEl = document.getElementById('ormRisk');
+      const catEl = document.getElementById('riskCategory');
+      if (maxScore === null) {
+        ormEl.textContent = 'ORM Risk: -';
+        ormEl.style.background = 'white';
+        ormEl.style.color = 'black';
+        catEl.textContent = 'Risk Category: -';
+        catEl.style.background = 'white';
+        catEl.style.color = 'black';
+      } else {
+        ormEl.textContent = 'ORM Risk: ' + maxScore;
+        const cat = riskCategoryFrom(maxScore);
+        catEl.textContent = 'Risk Category: ' + cat;
+        const bgColor = colorFromCategory(cat);
+        ormEl.style.background = bgColor;
+        ormEl.style.color = (cat === "Extreme risk" || cat === "Very high risk") ? "white" : "black";
+        catEl.style.background = bgColor;
+        catEl.style.color = (cat === "Extreme risk" || cat === "Very high risk") ? "white" : "black";
+      }
+    }
+
+    const getMissionValue = (id, defaultValue = '') => {
+      const element = document.getElementById(id);
+      return element ? (element.value || defaultValue) : defaultValue;
+    };
+
+    document.getElementById('saveExcel').addEventListener('click', () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      if (!validateMissionDate()) {
+        alert('Please ensure the mission date is between 2025 and 2050 before saving to Excel.');
+        return;
+      }
+
+      console.log('Excel export started...');
+      
+      const rows = [];
+      document.querySelectorAll('.section').forEach(section => {
+        const category = section.querySelector('h3')?.textContent || '';
+        if (category === "Mission & Crew Information") return;
+
+        section.querySelectorAll('.input-row').forEach(row => {
+          const title = row.querySelector('.title')?.value || '';
+          const desc = row.querySelector('.desc')?.value || '';
+          const ded = row.querySelector('.deduction')?.value || '';
+          const like = parseInt(row.dataset.like || '0', 10);
+          const sev = parseInt(row.dataset.sev || '0', 10);
+          const product = parseFloat(row.dataset.product || '0');
+          const finalVal = parseFloat(row.dataset.final || '0');
+          const likeLabel = LIKELIHOOD_OPTIONS.find(o => o.v === like)?.label || '';
+          const sevLabel = SEVERITY_OPTIONS.find(o => o.v === sev)?.label || '';
+          rows.push({
+            Category: category,
+            Title: title,
+            Likelihood_Value: like,
+            Likelihood_Label: likeLabel,
+            Severity_Value: sev,
+            Severity_Label: sevLabel,
+            Description: desc,
+            Deduction: ded,
+            Risk_Value: product,
+            Final_Risk_Value: finalVal
+          });
+        });
+      });
+
+      const missionInfo = [{
+        Pilot_Name: getMissionValue('pilotName'),
+        Pilot_Code: getMissionValue('pilotCode'),
+        Second_Pilot_Name: getMissionValue('secondPilotName'),
+        Second_Pilot_Code: getMissionValue('secondPilotCode'),
+        Mechanic_Name: getMissionValue('mechanicName'),
+        Mission_Time: getMissionValue('missionTime'),
+        Mission_Type: getMissionValue('missionType'),
+        Export_Date: new Date().toLocaleString()
+      }];
+
+      let finalSUP = null;
+      rows.forEach(r => { if (finalSUP === null || r.Final_Risk_Value > finalSUP) finalSUP = r.Final_Risk_Value; });
+      const summary = [{
+        ORM_Risk: finalSUP === null ? 'No risks entered' : finalSUP,
+        Risk_Category: finalSUP === null ? 'No risks entered' : riskCategoryFrom(finalSUP),
+        Total_Risks_Entered: rows.length
+      }];
+
+      const likelihoodReference = LIKELIHOOD_OPTIONS.map(option => ({
+        Value: option.v,
+        Description: option.label
+      }));
+
+      const severityReference = SEVERITY_OPTIONS.map(option => ({
+        Value: option.v,
+        Description: option.label
+      }));
+
+      const downloadTextFile = (filename, mimeType, text) => {
+        const blob = new Blob([text], { type: mimeType + ';charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+
+      const escapeCSV = (value) => {
+        const v = value == null ? '' : String(value);
+        if (/[",\n]/.test(v)) {
+          return '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+      };
+
+      const buildCSV = () => {
+        const lines = [];
+
+        // 1) Summary (key,value)
+        lines.push('Summary');
+        lines.push('Title,Value');
+        const sum = summary[0] || {};
+        if (Object.keys(sum).length) {
+          Object.keys(sum).forEach(k => lines.push(`${escapeCSV(k)},${escapeCSV(sum[k])}`));
+        } else {
+          lines.push('Note,No summary available');
+        }
+        lines.push('');
+
+        // 2) Mission Info (key,value)
+        lines.push('Mission Info');
+        lines.push('Title,Value');
+        const mi = missionInfo[0] || {};
+        if (Object.keys(mi).length) {
+          Object.keys(mi).forEach(k => lines.push(`${escapeCSV(k)},${escapeCSV(mi[k])}`));
+        } else {
+          lines.push('Note,No data');
+        }
+        lines.push('');
+
+        // 3) Risks (grouped key,value per risk)
+        lines.push('Risks');
+        if (rows.length) {
+          rows.forEach((obj, idx) => {
+            lines.push(`Risk ${idx + 1}`);
+            lines.push('Title,Value');
+            lines.push(`Category,${escapeCSV(obj.Category)}`);
+            lines.push(`Title,${escapeCSV(obj.Title)}`);
+            lines.push(`Description,${escapeCSV(obj.Description)}`);
+            lines.push(`Likelihood,${escapeCSV(obj.Likelihood_Value)} (${escapeCSV(obj.Likelihood_Label)})`);
+            lines.push(`Severity,${escapeCSV(obj.Severity_Value)} (${escapeCSV(obj.Severity_Label)})`);
+            lines.push(`Deduction,${escapeCSV(obj.Deduction)}`);
+            lines.push(`Risk Value,${escapeCSV(obj.Risk_Value)}`);
+            lines.push(`Final Risk Value,${escapeCSV(obj.Final_Risk_Value)}`);
+            lines.push('');
+          });
+        } else {
+          lines.push('Note,No risks entered');
+          lines.push('');
+        }
+
+        return lines.join('\n');
+      };
+
+      const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
+
+      // Prefer XLSX when available; otherwise, fall back to CSV for legacy Excel
+      if (typeof XLSX !== 'undefined' && XLSX && XLSX.utils && XLSX.writeFile) {
+        try {
+          const wb = XLSX.utils.book_new();
+
+          const ws3 = XLSX.utils.json_to_sheet(missionInfo);
+          XLSX.utils.book_append_sheet(wb, ws3, 'Mission Info');
+
+          const ws1 = XLSX.utils.json_to_sheet(rows.length ? rows : [{ Note: 'No risks entered' }]);
+          XLSX.utils.book_append_sheet(wb, ws1, 'Risks');
+
+          const ws2 = XLSX.utils.json_to_sheet(summary);
+          XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+          const ws4 = XLSX.utils.json_to_sheet(likelihoodReference);
+          XLSX.utils.book_append_sheet(wb, ws4, 'Likelihood Scale');
+
+          const ws5 = XLSX.utils.json_to_sheet(severityReference);
+          XLSX.utils.book_append_sheet(wb, ws5, 'Severity Scale');
+
+          const filenameXlsx = `ORM_Risk_${timestamp}.xlsx`;
+          XLSX.writeFile(wb, filenameXlsx);
+          console.log('Excel file saved successfully as:', filenameXlsx);
+          alert('Excel file saved successfully!');
+        } catch (e) {
+          console.warn('XLSX export failed, falling back to CSV...', e);
+          const csv = buildCSV();
+          const filenameCsv = `ORM_Risk_${timestamp}.csv`;
+          downloadTextFile(filenameCsv, 'text/csv', csv);
+          alert('Excel XLSX failed. Saved CSV (compatible with older Excel).');
+        }
+      } else {
+        const csv = buildCSV();
+        const filenameCsv = `ORM_Risk_${timestamp}.csv`;
+        downloadTextFile(filenameCsv, 'text/csv', csv);
+        alert('Saved CSV (compatible with older Excel).');
+      }
+    });
+
+    document.getElementById('savePDF').addEventListener('click', () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      if (!validateMissionDate()) {
+        alert('Please ensure the mission date is between 2025 and 2050 before saving to PDF.');
+        return;
+      }
+
+      setTimeout(() => {
+        const hasJsPDF = !!(window.jspdf && window.jspdf.jsPDF);
+        if (!hasJsPDF) {
+          // HTML print fallback for older PCs without jsPDF
+          const buildPrintableHtml = () => {
+            const esc = (s) => String(s == null ? '' : s);
+            const pilotName = esc(getMissionValue('pilotName', 'Not specified'));
+            const pilotCode = esc(getMissionValue('pilotCode', 'Not specified'));
+            const secondPilotName = esc(getMissionValue('secondPilotName', 'Not specified'));
+            const secondPilotCode = esc(getMissionValue('secondPilotCode', 'Not specified'));
+            const mechanicName = esc(getMissionValue('mechanicName', 'Not specified'));
+            const missionTime = esc(getMissionValue('missionTime', 'Not specified'));
+            const missionType = esc(getMissionValue('missionType', 'Not specified'));
+
+            let maxFinalRisk = null;
+            let totalRisks = 0;
+
+            const sectionsHtml = [];
+            document.querySelectorAll('.section').forEach(section => {
+              const category = section.querySelector('h3')?.textContent || '';
+              if (category === 'Mission & Crew Information') return;
+              const riskRows = section.querySelectorAll('.input-row');
+              if (!riskRows.length) return;
+              let rowsHtml = '';
+              riskRows.forEach(row => {
+                const title = esc(row.querySelector('.title')?.value || 'Untitled Risk');
+                const desc = esc(row.querySelector('.desc')?.value || '');
+                const like = parseInt(row.dataset.like || '0', 10);
+                const sev = parseInt(row.dataset.sev || '0', 10);
+                const product = parseFloat(row.dataset.product || '0');
+                const finalVal = parseFloat(row.dataset.final || '0');
+                const ded = esc(row.querySelector('.deduction')?.value || '0');
+                const likeLabel = LIKELIHOOD_OPTIONS.find(o => o.v === like)?.label || 'Unknown';
+                const sevLabel = SEVERITY_OPTIONS.find(o => o.v === sev)?.label || 'Unknown';
+                totalRisks++;
+                if (maxFinalRisk === null || finalVal > maxFinalRisk) maxFinalRisk = finalVal;
+                rowsHtml += `<tr>
+                  <td>${title}</td>
+                  <td>${desc}</td>
+                  <td>${like} (${likeLabel})</td>
+                  <td>${sev} (${sevLabel})</td>
+                  <td>${product}</td>
+                  <td>${ded}</td>
+                  <td>${finalVal}</td>
+                </tr>`;
+              });
+              sectionsHtml.push(`
+                <h3 style="color:#6c7cff;">${category}</h3>
+                <table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Description</th>
+                      <th>Likelihood</th>
+                      <th>Severity</th>
+                      <th>Risk Value</th>
+                      <th>Deduction</th>
+                      <th>Residual Risk Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${rowsHtml}
+                  </tbody>
+                </table>
+              `);
+            });
+
+            const ormRisk = maxFinalRisk === null ? 'No risks entered' : maxFinalRisk;
+            const riskCategory = maxFinalRisk === null ? 'No risks entered' : riskCategoryFrom(maxFinalRisk);
+
+            return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>ORM Risk Assessment</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                h1 { text-align: center; color: #6c7cff; }
+                h2 { margin-top: 24px; }
+                table { margin-top: 10px; }
+                th { background: #efefef; }
+                .meta td { padding: 4px 8px; }
+              </style>
+            </head><body>
+              <h1>ORM Sheet</h1>
+              <h2>Mission & Crew Information</h2>
+              <table class="meta">
+                <tr><td><strong>Pilot Name:</strong></td><td>${pilotName}</td></tr>
+                <tr><td><strong>Pilot Code:</strong></td><td>${pilotCode}</td></tr>
+                <tr><td><strong>Second Pilot Name:</strong></td><td>${secondPilotName}</td></tr>
+                <tr><td><strong>Second Pilot Code:</strong></td><td>${secondPilotCode}</td></tr>
+                <tr><td><strong>Mechanic Name:</strong></td><td>${mechanicName}</td></tr>
+                <tr><td><strong>Mission Date:</strong></td><td>${missionTime ? new Date(missionTime).toLocaleDateString() : 'Not specified'}</td></tr>
+                <tr><td><strong>Mission Type:</strong></td><td>${missionType}</td></tr>
+              </table>
+              ${sectionsHtml.join('')}
+              <h2>Risk Assessment Summary</h2>
+              <table class="meta">
+                <tr><td><strong>Overall ORM Risk Score:</strong></td><td>${ormRisk}</td></tr>
+                <tr><td><strong>Risk Category:</strong></td><td>${riskCategory}</td></tr>
+                <tr><td><strong>Total Risks Assessed:</strong></td><td>${totalRisks}</td></tr>
+                <tr><td><strong>Assessment Date:</strong></td><td>${new Date().toLocaleDateString()}</td></tr>
+              </table>
+              <div style="text-align:center;margin-top:24px;color:#666;font-size:12px;">Generated by ORM Risk Assessment Tool · 31st Air Unit</div>
+              <script>window.onload = function(){ window.print(); }<\/script>
+            </body></html>`;
+          };
+
+          const printable = window.open('', '_blank');
+          if (printable) {
+            printable.document.open();
+            printable.document.write(buildPrintableHtml());
+            printable.document.close();
+          } else {
+            alert('Popup blocked. Please allow popups to print or save as PDF.');
+          }
+          return;
+        }
+        try {
+          const doc = new window.jspdf.jsPDF();
+          let yPos = 20;
+
+          // Add background color to match app theme
+          doc.setFillColor(26, 26, 26);
+          doc.rect(0, 0, 210, 297, 'F');
+
+          // Add border
+          doc.setDrawColor(74, 103, 65);
+          doc.setLineWidth(1.5);
+          doc.rect(5, 5, 200, 287);
+
+          // Title
+          doc.setFontSize(20);
+          doc.setTextColor(184, 212, 168);
+          doc.text('ORM Risk Assessment', 105, yPos, { align: 'center' });
+          yPos += 12;
+
+          // Decorative line
+          doc.setDrawColor(74, 103, 65);
+          doc.setLineWidth(0.5);
+          doc.line(20, yPos, 190, yPos);
+          yPos += 8;
+
+          doc.setFontSize(14);
+          doc.setTextColor(108, 124, 255);
+          doc.text('Mission & Crew Information', 20, yPos);
+          yPos += 10;
+
+          doc.setFontSize(11);
+          doc.setTextColor(224, 224, 224);
+          const pilotName = getMissionValue('pilotName', 'Not specified');
+          const pilotCode = getMissionValue('pilotCode', 'Not specified');
+          const secondPilotName = getMissionValue('secondPilotName', 'Not specified');
+          const secondPilotCode = getMissionValue('secondPilotCode', 'Not specified');
+          const mechanicName = getMissionValue('mechanicName', 'Not specified');
+          const missionTime = getMissionValue('missionTime', 'Not specified');
+          const missionType = getMissionValue('missionType', 'Not specified');
+
+          doc.text(`Pilot Name: ${pilotName}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Pilot Code: ${pilotCode}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Second Pilot Name: ${secondPilotName}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Second Pilot Code: ${secondPilotCode}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Mechanic Name: ${mechanicName}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Mission Date: ${missionTime ? new Date(missionTime).toLocaleDateString() : 'Not specified'}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Mission Type: ${missionType}`, 25, yPos);
+          yPos += 12;
+
+          let maxFinalRisk = null;
+          let totalRisks = 0;
+
+          document.querySelectorAll('.section').forEach(section => {
+            const category = section.querySelector('h3')?.textContent || '';
+            if (category === "Mission & Crew Information") return;
+
+            const riskRows = section.querySelectorAll('.input-row');
+            if (riskRows.length === 0) return;
+
+            if (yPos > 240) {
+              doc.addPage();
+              // Add background to new page
+              doc.setFillColor(26, 26, 26);
+              doc.rect(0, 0, 210, 297, 'F');
+              doc.setDrawColor(74, 103, 65);
+              doc.setLineWidth(1.5);
+              doc.rect(5, 5, 200, 287);
+              yPos = 20;
+            }
+
+            doc.setFontSize(13);
+            doc.setTextColor(108, 124, 255);
+            doc.text(category, 20, yPos);
+            yPos += 9;
+
+            doc.setDrawColor(74, 103, 65);
+            doc.setLineWidth(0.3);
+            doc.line(20, yPos, 190, yPos);
+            yPos += 6;
+
+            doc.setFontSize(10);
+            doc.setTextColor(224, 224, 224);
+
+            riskRows.forEach(row => {
+              const title = row.querySelector('.title')?.value || 'Untitled Risk';
+              const desc = row.querySelector('.desc')?.value || '';
+              const like = parseInt(row.dataset.like || '0', 10);
+              const sev = parseInt(row.dataset.sev || '0', 10);
+              const product = parseFloat(row.dataset.product || '0');
+              const finalVal = parseFloat(row.dataset.final || '0');
+              const ded = row.querySelector('.deduction')?.value || '0';
+
+              totalRisks++;
+              if (maxFinalRisk === null || finalVal > maxFinalRisk) {
+                maxFinalRisk = finalVal;
+              }
+
+              if (yPos > 255) {
+                doc.addPage();
+                // Add background to new page
+                doc.setFillColor(26, 26, 26);
+                doc.rect(0, 0, 210, 297, 'F');
+                doc.setDrawColor(74, 103, 65);
+                doc.setLineWidth(1.5);
+                doc.rect(5, 5, 200, 287);
+                yPos = 20;
+              }
+
+              doc.setTextColor(184, 212, 168);
+              doc.text(`• ${title}`, 25, yPos);
+              yPos += 6;
+              if (desc) {
+                doc.setTextColor(200, 200, 200);
+                const descLines = doc.splitTextToSize(`Description: ${desc}`, 155);
+                doc.text(descLines, 30, yPos);
+                yPos += descLines.length * 5;
+              }
+              const likeLabel = LIKELIHOOD_OPTIONS.find(o => o.v === like)?.label || 'Unknown';
+              const sevLabel = SEVERITY_OPTIONS.find(o => o.v === sev)?.label || 'Unknown';
+              
+              doc.setTextColor(200, 200, 200);
+              doc.text(`Likelihood: ${like} (${likeLabel}) | Severity: ${sev} (${sevLabel})`, 30, yPos);
+              yPos += 5;
+              doc.text(`Risk Value: ${product} | Deduction: ${ded} | Residual: ${finalVal}`, 30, yPos);
+              yPos += 7;
+            });
+
+            yPos += 4;
+          });
+
+          if (yPos > 230) {
+            doc.addPage();
+            // Add background to new page
+            doc.setFillColor(26, 26, 26);
+            doc.rect(0, 0, 210, 297, 'F');
+            doc.setDrawColor(74, 103, 65);
+            doc.setLineWidth(1.5);
+            doc.rect(5, 5, 200, 287);
+            yPos = 20;
+          }
+
+          doc.setFontSize(14);
+          doc.setTextColor(108, 124, 255);
+          doc.text('Risk Assessment Summary', 20, yPos);
+          yPos += 9;
+
+          doc.setDrawColor(74, 103, 65);
+          doc.setLineWidth(0.3);
+          doc.line(20, yPos, 190, yPos);
+          yPos += 8;
+
+          doc.setFontSize(11);
+          doc.setTextColor(224, 224, 224);
+
+          const ormRisk = maxFinalRisk === null ? 'No risks entered' : maxFinalRisk;
+          const riskCategory = maxFinalRisk === null ? 'No risks entered' : riskCategoryFrom(maxFinalRisk);
+
+          // Get risk category color
+          const riskCatColor = maxFinalRisk === null ? 'white' : colorFromCategory(riskCategory);
+          const colorMap = {
+            'green': [76, 175, 80],
+            'yellow': [255, 193, 7],
+            'orange': [255, 152, 0],
+            'red': [244, 67, 54],
+            'black': [50, 50, 50],
+            'white': [200, 200, 200]
+          };
+          const rgbColor = colorMap[riskCatColor] || [200, 200, 200];
+
+          doc.text(`Overall ORM Risk Score: `, 25, yPos);
+          doc.setTextColor(...rgbColor);
+          doc.text(`${ormRisk}`, 100, yPos);
+          doc.setTextColor(224, 224, 224);
+          yPos += 7;
+
+          doc.text(`Risk Category: `, 25, yPos);
+          doc.setTextColor(...rgbColor);
+          doc.text(`${riskCategory}`, 100, yPos);
+          doc.setTextColor(224, 224, 224);
+          yPos += 7;
+
+          doc.text(`Total Risks Assessed: ${totalRisks}`, 25, yPos);
+          yPos += 7;
+          doc.text(`Assessment Date: ${new Date().toLocaleDateString()}`, 25, yPos);
+
+          doc.setFontSize(8);
+          doc.setTextColor(100, 100, 100);
+          doc.text('Generated by ORM Risk Assessment Tool · 31st Air Unit', 105, 285, { align: 'center' });
+
+          const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
+          const filename = `ORM_Risk_Assessment_${timestamp}.pdf`;
+          doc.save(filename);
+
+          console.log('PDF saved successfully as:', filename);
+          alert('PDF file saved successfully!');
+
+        } catch (err) {
+          console.error('PDF export error:', err);
+          alert('Failed to create PDF with jsPDF. The app will try the print-to-PDF fallback.');
+          // Fallback to print if jsPDF threw during runtime
+          const printable = window.open('', '_blank');
+          if (printable) {
+            printable.document.open();
+            printable.document.write('<html><head><meta charset="utf-8"><title>ORM Risk Assessment</title></head><body><pre>Unable to render PDF. Please use the Excel/CSV export or try printing this page.</pre><script>window.onload=function(){window.print()}<\/script></body></html>');
+            printable.document.close();
+          }
+        }
+      }, 100);
+    });
+
+    // Direct CSV export button
+    document.getElementById('saveCSV').addEventListener('click', () => {
+      if (!validateForm()) {
+        return;
+      }
+
+      if (!validateMissionDate()) {
+        alert('Please ensure the mission date is between 2025 and 2050 before saving to CSV.');
+        return;
+      }
+
+      const rows = [];
+      document.querySelectorAll('.section').forEach(section => {
+        const category = section.querySelector('h3')?.textContent || '';
+        if (category === "Mission & Crew Information") return;
+
+        section.querySelectorAll('.input-row').forEach(row => {
+          const title = row.querySelector('.title')?.value || '';
+          const desc = row.querySelector('.desc')?.value || '';
+          const ded = row.querySelector('.deduction')?.value || '';
+          const like = parseInt(row.dataset.like || '0', 10);
+          const sev = parseInt(row.dataset.sev || '0', 10);
+          const product = parseFloat(row.dataset.product || '0');
+          const finalVal = parseFloat(row.dataset.final || '0');
+          const likeLabel = LIKELIHOOD_OPTIONS.find(o => o.v === like)?.label || '';
+          const sevLabel = SEVERITY_OPTIONS.find(o => o.v === sev)?.label || '';
+          rows.push({
+            Category: category,
+            Title: title,
+            Likelihood_Value: like,
+            Likelihood_Label: likeLabel,
+            Severity_Value: sev,
+            Severity_Label: sevLabel,
+            Description: desc,
+            Deduction: ded,
+            Risk_Value: product,
+            Final_Risk_Value: finalVal
+          });
+        });
+      });
+
+      const missionInfo = [{
+        Pilot_Name: getMissionValue('pilotName'),
+        Pilot_Code: getMissionValue('pilotCode'),
+        Second_Pilot_Name: getMissionValue('secondPilotName'),
+        Second_Pilot_Code: getMissionValue('secondPilotCode'),
+        Mechanic_Name: getMissionValue('mechanicName'),
+        Mission_Time: getMissionValue('missionTime'),
+        Mission_Type: getMissionValue('missionType'),
+        Export_Date: new Date().toLocaleString()
+      }];
+
+      let finalSUP = null;
+      rows.forEach(r => { if (finalSUP === null || r.Final_Risk_Value > finalSUP) finalSUP = r.Final_Risk_Value; });
+      const summary = [{
+        ORM_Risk: finalSUP === null ? 'No risks entered' : finalSUP,
+        Risk_Category: finalSUP === null ? 'No risks entered' : riskCategoryFrom(finalSUP),
+        Total_Risks_Entered: rows.length
+      }];
+
+      const downloadTextFile = (filename, mimeType, text) => {
+        const blob = new Blob([text], { type: mimeType + ';charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      };
+
+      const escapeCSV = (value) => {
+        const v = value == null ? '' : String(value);
+        if (/[",\n]/.test(v)) {
+          return '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+      };
+
+      const buildCSV = () => {
+        const lines = [];
+
+        // 1) Summary (key,value)
+        lines.push('Summary');
+        lines.push('Title,Value');
+        const sum = summary[0] || {};
+        if (Object.keys(sum).length) {
+          Object.keys(sum).forEach(k => lines.push(`${escapeCSV(k)},${escapeCSV(sum[k])}`));
+        } else {
+          lines.push('Note,No summary available');
+        }
+        lines.push('');
+
+        // 2) Mission Info (key,value)
+        lines.push('Mission Info');
+        lines.push('Title,Value');
+        const mi = missionInfo[0] || {};
+        if (Object.keys(mi).length) {
+          Object.keys(mi).forEach(k => lines.push(`${escapeCSV(k)},${escapeCSV(mi[k])}`));
+        } else {
+          lines.push('Note,No data');
+        }
+        lines.push('');
+
+        // 3) Risks (grouped key,value per risk)
+        lines.push('Risks');
+        if (rows.length) {
+          rows.forEach((obj, idx) => {
+            lines.push(`Risk ${idx + 1}`);
+            lines.push('Title,Value');
+            lines.push(`Category,${escapeCSV(obj.Category)}`);
+            lines.push(`Title,${escapeCSV(obj.Title)}`);
+            lines.push(`Description,${escapeCSV(obj.Description)}`);
+            lines.push(`Likelihood,${escapeCSV(obj.Likelihood_Value)} (${escapeCSV(obj.Likelihood_Label)})`);
+            lines.push(`Severity,${escapeCSV(obj.Severity_Value)} (${escapeCSV(obj.Severity_Label)})`);
+            lines.push(`Deduction,${escapeCSV(obj.Deduction)}`);
+            lines.push(`Risk Value,${escapeCSV(obj.Risk_Value)}`);
+            lines.push(`Final Risk Value,${escapeCSV(obj.Final_Risk_Value)}`);
+            lines.push('');
+          });
+        } else {
+          lines.push('Note,No risks entered');
+          lines.push('');
+        }
+
+        return lines.join('\n');
+      };
+
+      const timestamp = new Date().toISOString().slice(0, 16).replace(/[:-]/g, '');
+      const filenameCsv = `ORM_Risk_${timestamp}.csv`;
+      const csv = buildCSV();
+      downloadTextFile(filenameCsv, 'text/csv', csv);
+      alert('CSV file saved successfully!');
+    });
+
+    updateORM();
+  </script>
+</body>
+</html>

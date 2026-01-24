@@ -1,0 +1,27 @@
+{
+  "name": "orm-v2-app",
+  "version": "1.0.0",
+  "description": "A cross-platform application for assessments and references.",
+  "main": "src/electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "forge build",
+    "pwa": "npm run build && serve src/web"
+  },
+  "dependencies": {
+    "electron": "^latest",
+    "express": "^latest",
+    "serve": "^latest"
+  },
+  "devDependencies": {
+    "forge": "^latest"
+  },
+  "keywords": [
+    "electron",
+    "pwa",
+    "assessment",
+    "reference"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

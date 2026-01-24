@@ -1,0 +1,18 @@
+{
+  "appId": "com.example.ormv2app",
+  "appName": "ORM V2 App",
+  "webDir": "src/web",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    },
+    "StatusBar": {
+      "style": "DARK"
+    }
+  },
+  "server": {
+    "url": "http://localhost:8100",
+    "cleartext": true
+  }
+}
