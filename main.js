@@ -6,8 +6,11 @@ if (require('electron-squirrel-startup')) {
   app.quit();
 }
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js');
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('../pwa/service-worker.js');
+  });
 }
+
 
 function createWindow() {
   const win = new BrowserWindow({

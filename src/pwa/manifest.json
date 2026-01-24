@@ -2,7 +2,7 @@
   "name": "ORM V2",
   "short_name": "ORMV2",
   "description": "A web application for assessments and references.",
-  "start_url": "/index.html",
+  "start_url": "../web/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4CAF50",
