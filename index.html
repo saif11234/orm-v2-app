@@ -59,26 +59,33 @@
       }
     }
   </script>
-  <!-- Load shared initial state from state.json into localStorage if not already present -->
+  <!-- Load shared initial state from state.json into localStorage and overwrite existing keys -->
   <script>
     (function(){
-      // Try to fetch a static state.json at the site root (useful for GitHub Pages)
+      // Fetch a static state.json at the site root (useful for GitHub Pages)
       fetch('/state.json').then(resp => {
         if (!resp.ok) return null;
         return resp.json();
       }).then(data => {
         if (!data) return;
         try {
-          // Only populate when localStorage appears empty or the key we expect is missing
-          if (localStorage.length === 0 || !localStorage.getItem('customHazardExamples')) {
-            Object.entries(data).forEach(([k,v]) => {
-              try {
-                const val = (typeof v === 'object') ? JSON.stringify(v) : String(v);
-                localStorage.setItem(k, val);
-              } catch (e) { /* ignore individual set errors */ }
-            });
-            console.log('Shared initial state loaded into localStorage from /state.json');
-          }
+          // Clear all existing localStorage for this origin and populate from state.json
+          try { localStorage.clear(); } catch (e) { /* ignore clear errors */ }
+          Object.entries(data).forEach(([k,v]) => {
+            try {
+              const val = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+              localStorage.setItem(k, val);
+            } catch (e) { /* ignore per-key set errors */ }
+          });
+          console.log('localStorage overwritten from /state.json');
+          // optional: force reload so if an iframe reads localStorage on load it sees new data
+          try {
+            // reload only if we are on the top-level page (not inside an iframe)
+            if (window.top === window && !sessionStorage.getItem('stateLoadedOnce')) {
+              sessionStorage.setItem('stateLoadedOnce', '1');
+              location.reload();
+            }
+          } catch (e) { /* ignore reload errors */ }
         } catch (e) { /* ignore */ }
       }).catch(() => { /* ignore fetch errors silently */ });
     })();
