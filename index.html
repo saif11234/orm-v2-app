@@ -62,32 +62,32 @@
   <!-- Load shared initial state from state.json into localStorage and overwrite existing keys -->
   <script>
     (function(){
-      // Fetch a static state.json at the site root (useful for GitHub Pages)
-      fetch('/state.json').then(resp => {
-        if (!resp.ok) return null;
+      // Fetch a repo-relative state.json so it works on GitHub Pages under /orm-v2-app/
+      fetch('./state.json').then(resp => {
+        if (!resp.ok) {
+          console.warn('state.json not found (status ' + resp.status + ')');
+          return null;
+        }
         return resp.json();
       }).then(data => {
         if (!data) return;
         try {
-          // Clear all existing localStorage for this origin and populate from state.json
-          try { localStorage.clear(); } catch (e) { /* ignore clear errors */ }
+          localStorage.clear();
           Object.entries(data).forEach(([k,v]) => {
-            try {
-              const val = (typeof v === 'object') ? JSON.stringify(v) : String(v);
-              localStorage.setItem(k, val);
-            } catch (e) { /* ignore per-key set errors */ }
+            const val = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+            localStorage.setItem(k, val);
           });
-          console.log('localStorage overwritten from /state.json');
-          // optional: force reload so if an iframe reads localStorage on load it sees new data
+          console.log('localStorage overwritten from ./state.json');
           try {
-            // reload only if we are on the top-level page (not inside an iframe)
             if (window.top === window && !sessionStorage.getItem('stateLoadedOnce')) {
               sessionStorage.setItem('stateLoadedOnce', '1');
               location.reload();
             }
-          } catch (e) { /* ignore reload errors */ }
-        } catch (e) { /* ignore */ }
-      }).catch(() => { /* ignore fetch errors silently */ });
+          } catch (e) {}
+        } catch (e) { console.error('apply state.json failed', e); }
+      }).catch(err => {
+        console.warn('Failed to fetch ./state.json', err);
+      });
     })();
   </script>
 </body>
