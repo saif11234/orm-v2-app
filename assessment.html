@@ -17,17 +17,6 @@
     <ul id="missingFields"></ul>
   </div>
 
-  <!-- Export / Import localStorage helper -->
-  <div style="margin:10px 0;">
-    <button id="exportState">Export Local State</button>
-    <button id="toggleImport">Import State (paste JSON)</button>
-    <button id="applyImport" style="display:none;">Apply Import</button>
-    <button id="downloadState" style="display:none;">Download JSON</button>
-    <div>
-      <textarea id="stateJsonArea" style="width:100%;height:120px;display:none;" placeholder="Paste exported JSON here"></textarea>
-    </div>
-  </div>
-
   <!-- Mission & Crew Details Section -->
   <div class="section" id="missionDetails">
     <h3>Mission & Crew Information</h3>
@@ -1231,95 +1220,6 @@
     });
 
     updateORM();
-  </script>
-  <script>
-    // Export / Import handlers for localStorage
-    (function(){
-      const exportBtn = document.getElementById('exportState');
-      const toggleImportBtn = document.getElementById('toggleImport');
-      const applyImportBtn = document.getElementById('applyImport');
-      const downloadBtn = document.getElementById('downloadState');
-      const area = document.getElementById('stateJsonArea');
-
-      function parseStoredValue(v) {
-        try { return JSON.parse(v); } catch (e) { return v; }
-      }
-
-      exportBtn && exportBtn.addEventListener('click', async () => {
-        try {
-          const obj = {};
-          for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const val = localStorage.getItem(key);
-            obj[key] = parseStoredValue(val);
-          }
-          const json = JSON.stringify(obj, null, 2);
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(json);
-            alert('Local state copied to clipboard. You can paste it into state.json for deployment.');
-          } else {
-            // fallback: show in textarea
-            area.style.display = 'block';
-            area.value = json;
-            alert('Clipboard not available — JSON placed in the box below.');
-          }
-        } catch (err) {
-          console.error(err);
-          alert('Failed to export local state. See console.');
-        }
-      });
-
-      toggleImportBtn && toggleImportBtn.addEventListener('click', () => {
-        if (area.style.display === 'block') {
-          area.style.display = 'none';
-          applyImportBtn.style.display = 'none';
-          downloadBtn.style.display = 'none';
-        } else {
-          area.style.display = 'block';
-          applyImportBtn.style.display = 'inline-block';
-          downloadBtn.style.display = 'inline-block';
-        }
-      });
-
-      applyImportBtn && applyImportBtn.addEventListener('click', () => {
-        try {
-          const text = area.value.trim();
-          if (!text) { alert('Paste valid JSON first'); return; }
-          const parsed = JSON.parse(text);
-          if (!confirm('This will overwrite localStorage keys for this origin. Continue?')) return;
-          Object.entries(parsed).forEach(([k,v]) => {
-            try {
-              const storeVal = (typeof v === 'object') ? JSON.stringify(v) : String(v);
-              localStorage.setItem(k, storeVal);
-            } catch (e) { /* ignore per-key errors */ }
-          });
-          alert('Imported JSON applied to localStorage. Reloading page.');
-          location.reload();
-        } catch (err) {
-          console.error(err);
-          alert('Invalid JSON — check the pasted content.');
-        }
-      });
-
-      downloadBtn && downloadBtn.addEventListener('click', () => {
-        try {
-          const text = area.value.trim();
-          if (!text) { alert('Paste or export to populate the JSON first.'); return; }
-          const blob = new Blob([text], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'state.json';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
-        } catch (err) {
-          console.error(err);
-          alert('Failed to download JSON.');
-        }
-      });
-    })();
   </script>
     <script>
       if ('serviceWorker' in navigator) {
