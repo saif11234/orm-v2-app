@@ -59,5 +59,29 @@
       }
     }
   </script>
+  <!-- Load shared initial state from state.json into localStorage if not already present -->
+  <script>
+    (function(){
+      // Try to fetch a static state.json at the site root (useful for GitHub Pages)
+      fetch('/state.json').then(resp => {
+        if (!resp.ok) return null;
+        return resp.json();
+      }).then(data => {
+        if (!data) return;
+        try {
+          // Only populate when localStorage appears empty or the key we expect is missing
+          if (localStorage.length === 0 || !localStorage.getItem('customHazardExamples')) {
+            Object.entries(data).forEach(([k,v]) => {
+              try {
+                const val = (typeof v === 'object') ? JSON.stringify(v) : String(v);
+                localStorage.setItem(k, val);
+              } catch (e) { /* ignore individual set errors */ }
+            });
+            console.log('Shared initial state loaded into localStorage from /state.json');
+          }
+        } catch (e) { /* ignore */ }
+      }).catch(() => { /* ignore fetch errors silently */ });
+    })();
+  </script>
 </body>
 </html>
