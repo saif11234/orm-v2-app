@@ -1,11 +1,11 @@
 {
   "name": "ORM V2",
   "short_name": "ORMV2",
-  "description": "A web application for assessments and references.",
-  "start_url": "../web/index.html",
+  "description": "A cross-platform application for assessments and references.",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4CAF50",
+  "background_color": "#1a1a1a",
+  "theme_color": "#4a6741",
   "icons": [
     {
       "src": "/icon-192x192.ico",
@@ -17,5 +17,7 @@
       "sizes": "512x512",
       "type": "image/x-icon"
     }
-  ]
+  ],
+  "scope": "/",
+  "orientation": "portrait-primary"
 }
