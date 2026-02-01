@@ -1,7 +1,7 @@
 {
   "appId": "com.example.ormv2app",
   "appName": "ORM V2 App",
-  "webDir": "src/web",
+  "webDir": ".",
   "bundledWebRuntime": false,
   "plugins": {
     "SplashScreen": {
@@ -12,7 +12,6 @@
     }
   },
   "server": {
-    "url": "http://localhost:8100",
     "cleartext": true
   }
 }
