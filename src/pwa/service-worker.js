@@ -10,7 +10,6 @@ const ASSETS = [
   'icon-512x512.ico',
   'left.png',
   'right.png',
-  'logo.ico',
   'background.jpg'
 ];
 
